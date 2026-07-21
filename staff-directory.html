@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff directory</title>
+<style>
+  :root{
+    --ink:#1b2a4a;
+    --ink-soft:#4b5876;
+    --paper:#f7f5f0;
+    --card:#ffffff;
+    --line:#e3ded2;
+    --accent:#c1442e;
+    --accent-soft:#f4e1dc;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --sans: 'Space Grotesk', 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    font-family:var(--sans);
+    color:var(--ink);
+    padding:32px 16px 80px;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:16px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  header h1{
+    font-size:28px;
+    margin:0;
+    letter-spacing:-0.02em;
+  }
+  header .sub{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+  .toolbar{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+  }
+  input, select{
+    font-family:var(--sans);
+    font-size:14px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:var(--card);
+    color:var(--ink);
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--ink);
+  }
+  #searchInput{flex:1;min-width:180px;}
+  button{
+    font-family:var(--sans);
+    font-size:14px;
+    font-weight:500;
+    padding:10px 16px;
+    border-radius:6px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:#fff;
+    cursor:pointer;
+  }
+  button.secondary{
+    background:transparent;
+    color:var(--ink);
+  }
+  button.danger{
+    background:transparent;
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+  button:hover{opacity:0.85;}
+  .empty{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+    font-family:var(--mono);
+    font-size:13px;
+    border:1px dashed var(--line);
+    border-radius:10px;
+  }
+  .list{display:flex;flex-direction:column;gap:10px;}
+  .row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+  }
+  .bg-tag{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:var(--accent-soft);
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:12px;
+    flex-shrink:0;
+  }
+  .info{flex:1;min-width:0;}
+  .info .name{font-weight:600;font-size:15px;}
+  .info .meta{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .row-actions{display:flex;gap:8px;flex-shrink:0;}
+  .row-actions button{padding:7px 12px;font-size:13px;}
+  .modal-backdrop{
+    position:fixed;inset:0;
+    background:rgba(27,42,74,0.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:10;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--card);
+    border-radius:12px;
+    padding:24px;
+    width:100%;
+    max-width:400px;
+  }
+  .modal h2{margin:0 0 16px;font-size:18px;}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    font-family:var(--mono);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field input, .field select{width:100%;}
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:20px;
+  }
+  .error-text{
+    color:var(--accent);
+    font-size:12px;
+    margin-top:6px;
+    display:none;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Staff directory</h1>
+      <div class="sub">records saved automatically</div>
+    </div>
+    <button id="addBtn">+ Add person</button>
+  </header>
+
+  <div class="toolbar">
+    <input id="searchInput" type="text" placeholder="Search by name or ID...">
+  </div>
+
+  <div id="listArea"></div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2 id="modalTitle">Add person</h2>
+    <form id="personForm">
+      <div class="field">
+        <label for="fName">Name</label>
+        <input id="fName" type="text" required>
+      </div>
+      <div class="field">
+        <label for="fId">ID</label>
+        <input id="fId" type="text" required>
+        <div class="error-text" id="idError">This ID is already in use.</div>
+      </div>
+      <div class="field">
+        <label for="fDept">Department</label>
+        <input id="fDept" type="text" required>
+      </div>
+      <div class="field">
+        <label for="fBlood">Blood group</label>
+        <select id="fBlood">
+          <option value="">Not specified</option>
+          <option>A+</option><option>A-</option>
+          <option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option>
+          <option>O+</option><option>O-</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancelBtn">Cancel</button>
+        <button type="submit" id="saveBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ---- state ----
+let people = [];        // array of {name, id, department, bloodGroup}
+let editingId = null;   // id of person currently being edited, or null when adding
+const STORAGE_KEY = 'people';
+
+// ---- storage helpers ----
+// Uses localStorage, which is built into every browser and persists
+// data on this device even after you close the tab or restart the browser.
+function loadPeople(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    people = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    console.error('Could not load data', e);
+    people = [];
+  }
+  render();
+}
+
+function savePeople(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
+  }catch(e){
+    console.error('Could not save data', e);
+    alert('Your changes could not be saved. Your browser may be blocking local storage for this file.');
+  }
+}
+
+// ---- rendering ----
+function render(){
+  const query = document.getElementById('searchInput').value.trim().toLowerCase();
+  const listArea = document.getElementById('listArea');
+
+  const filtered = people.filter(p =>
+    p.name.toLowerCase().includes(query) || p.id.toLowerCase().includes(query)
+  );
+
+  if(filtered.length === 0){
+    listArea.innerHTML = `<div class="empty">${people.length === 0 ? 'No one added yet. Click "Add person" to get started.' : 'No matches for your search.'}</div>`;
+    return;
+  }
+
+  listArea.innerHTML = `<div class="list">${filtered.map(p => `
+    <div class="row">
+      <div class="bg-tag">${p.bloodGroup || '--'}</div>
+      <div class="info">
+        <div class="name">${escapeHtml(p.name)}</div>
+        <div class="meta">ID ${escapeHtml(p.id)} &nbsp;&middot;&nbsp; ${escapeHtml(p.department)}</div>
+      </div>
+      <div class="row-actions">
+        <button class="secondary" onclick="openEdit('${escapeAttr(p.id)}')">Edit</button>
+        <button class="danger" onclick="deletePerson('${escapeAttr(p.id)}')">Delete</button>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+function escapeAttr(str){
+  return String(str).replace(/'/g, "\\'");
+}
+
+// ---- modal control ----
+const modalBackdrop = document.getElementById('modalBackdrop');
+const form = document.getElementById('personForm');
+const idError = document.getElementById('idError');
+
+function openAdd(){
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add person';
+  form.reset();
+  idError.style.display = 'none';
+  document.getElementById('fId').disabled = false;
+  modalBackdrop.classList.add('open');
+  document.getElementById('fName').focus();
+}
+
+function openEdit(id){
+  const person = people.find(p => p.id === id);
+  if(!person) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit person';
+  document.getElementById('fName').value = person.name;
+  document.getElementById('fId').value = person.id;
+  document.getElementById('fDept').value = person.department;
+  document.getElementById('fBlood').value = person.bloodGroup || '';
+  idError.style.display = 'none';
+  document.getElementById('fId').disabled = true; // keep ID stable while editing
+  modalBackdrop.classList.add('open');
+  document.getElementById('fName').focus();
+}
+
+function closeModal(){
+  modalBackdrop.classList.remove('open');
+  editingId = null;
+}
+
+document.getElementById('addBtn').addEventListener('click', openAdd);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+modalBackdrop.addEventListener('click', (e) => {
+  if(e.target === modalBackdrop) closeModal();
+});
+
+// ---- create / update ----
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById('fName').value.trim();
+  const id = document.getElementById('fId').value.trim();
+  const department = document.getElementById('fDept').value.trim();
+  const bloodGroup = document.getElementById('fBlood').value;
+
+  if(!name || !id || !department) return;
+
+  const duplicate = people.some(p => p.id === id && p.id !== editingId);
+  if(duplicate){
+    idError.style.display = 'block';
+    return;
+  }
+  idError.style.display = 'none';
+
+  if(editingId){
+    const person = people.find(p => p.id === editingId);
+    person.name = name;
+    person.department = department;
+    person.bloodGroup = bloodGroup;
+  } else {
+    people.push({ name, id, department, bloodGroup });
+  }
+
+  savePeople();
+  render();
+  closeModal();
+});
+
+// ---- delete ----
+function deletePerson(id){
+  if(!confirm('Delete this person? This cannot be undone.')) return;
+  people = people.filter(p => p.id !== id);
+  savePeople();
+  render();
+}
+
+// ---- search ----
+document.getElementById('searchInput').addEventListener('input', render);
+
+// ---- init ----
+loadPeople();
+</script>
+</body>
+</html>
